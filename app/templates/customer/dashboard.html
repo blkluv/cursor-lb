@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block title %}My shoots — Matt Photography{% endblock %}
+{% block header_extra %}
+{% include "partials/nav_customer.html" %}
+{% endblock %}
+{% block content %}
+<style>
+  #invoices { scroll-margin-top: 1.5rem; }
+</style>
+<div class="mb-8">
+  <p class="text-sm font-medium text-amber-600 mb-1">Client portal</p>
+  <h1 class="text-3xl font-bold text-slate-800">My shoots</h1>
+  <p class="text-slate-500 mt-1">Hi {{ user_name }} — here’s the status of your bookings with Matt Photography.</p>
+</div>
+
+{% if request.query_params.get('paid') == '1' %}
+<div class="mb-6 p-4 rounded-lg bg-emerald-50 text-emerald-800 text-sm border border-emerald-100">
+  Payment successful — thank you! Your invoice is marked as paid.
+</div>
+{% endif %}
+
+{% if failed_deliveries %}
+<div class="mb-6 p-4 rounded-lg bg-red-50 text-red-800 text-sm border border-red-100">
+  We couldn't deliver {{ failed_deliveries|length }} invoice email{% if failed_deliveries|length != 1 %}s{% endif %}
+  to <span class="font-medium">{{ user_email }}</span>.
+  <a href="/customer/settings" class="font-medium underline hover:no-underline">Update your email in settings</a>
+  and contact Matt if you need a resend.
+</div>
+{% endif %}
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+    Booked ({{ pending_jobs|length }})
+  </h2>
+  {% if pending_jobs %}
+  <div class="grid gap-4">
+    {% for job in pending_jobs %}
+    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <h3 class="font-semibold text-lg">{{ job.title }}</h3>
+      <p class="text-slate-500 text-sm mt-1">Shoot date: {{ job.shoot_date }}</p>
+      <p class="text-sm text-slate-600 mt-2">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium">
+          Booked — awaiting your shoot
+        </span>
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+    No booked shoots yet.
+    <a href="/customer/book" class="text-amber-600 font-medium hover:underline">Book a shoot</a>.
+  </div>
+  {% endif %}
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+    In progress ({{ started_jobs|length }})
+  </h2>
+  {% if started_jobs %}
+  <div class="grid gap-4">
+    {% for job in started_jobs %}
+    <div class="bg-white rounded-xl border border-amber-200 p-5 shadow-sm">
+      <h3 class="font-semibold text-lg">{{ job.title }}</h3>
+      <p class="text-slate-500 text-sm mt-1">Shoot date: {{ job.shoot_date }}</p>
+      <p class="text-sm text-slate-600 mt-2">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-medium">
+          In progress — shoot underway
+        </span>
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-slate-500 text-sm">Shoots Matt has started will show up here.</p>
+  {% endif %}
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+    Completed ({{ completed_jobs|length }})
+  </h2>
+  {% if completed_jobs %}
+  <div class="grid gap-4">
+    {% for job in completed_jobs %}
+    <div class="bg-white rounded-xl border border-emerald-200 p-5 shadow-sm">
+      <h3 class="font-semibold text-lg">{{ job.title }}</h3>
+      <p class="text-slate-500 text-sm mt-1">Shoot date: {{ job.shoot_date }}</p>
+      <p class="text-sm text-slate-600 mt-2 flex flex-wrap items-center gap-2">
+        {% if job.invoice and job.invoice.email_status == 'failed' %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-50 text-red-800 font-medium">
+          Completed — invoice email failed
+        </span>
+        {% else %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 font-medium">
+          Completed — invoice sent
+        </span>
+        {% endif %}
+        {% if job.invoice %}
+          {% if job.invoice.payment_status == 'paid' %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
+            Paid
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-medium">
+            Awaiting payment
+          </span>
+          {% endif %}
+        {% endif %}
+      </p>
+      {% if job.invoice %}
+      <div class="mt-4 pt-4 border-t border-emerald-100 rounded-lg bg-emerald-50/50 p-4">
+        <p class="text-sm font-semibold text-slate-800 mb-2">Invoice #{{ job.invoice.id }}</p>
+        <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-3">
+          <div>
+            <dt class="text-slate-500">Subtotal</dt>
+            <dd class="font-medium">{{ fmt_cents(job.invoice.subtotal_cents) }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Tax</dt>
+            <dd class="font-medium">{{ fmt_cents(job.invoice.tax_cents) }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Total</dt>
+            <dd class="font-medium text-slate-900">{{ fmt_cents(job.invoice.total_cents) }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Sent</dt>
+            <dd class="text-slate-700">{{ job.invoice.sent_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+          </div>
+          {% if job.invoice.payment_due_date and job.invoice.payment_status != 'paid' %}
+          <div>
+            <dt class="text-slate-500">Due</dt>
+            <dd class="text-slate-700">
+              Due by {{ job.invoice.payment_due_date }}
+              {% if invoice_is_overdue(job.invoice) %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-medium ml-1">Overdue</span>
+              {% endif %}
+            </dd>
+          </div>
+          {% endif %}
+          {% if job.invoice.email_sent_at and (job.invoice.email_sent_at - job.invoice.sent_at).total_seconds() > 60 %}
+          <div class="col-span-2 sm:col-span-4">
+            <p class="text-sm text-slate-600">
+              Invoice resent on {{ job.invoice.email_sent_at.strftime('%Y-%m-%d %H:%M') }}.
+            </p>
+          </div>
+          {% endif %}
+          <div>
+            <dt class="text-slate-500">Email</dt>
+            <dd>
+              {% if job.invoice.email_status in ('sent', 'delivered') %}
+              <span class="text-emerald-700 font-medium capitalize">{{ job.invoice.email_status }}</span>
+              {% elif job.invoice.email_status == 'failed' %}
+              <span class="text-red-700 font-medium">Failed</span>
+              {% else %}
+              <span class="text-slate-600 capitalize">{{ job.invoice.email_status }}</span>
+              {% endif %}
+            </dd>
+          </div>
+        </dl>
+        {% if job.invoice.email_status == 'failed' %}
+        <p class="text-sm text-red-700 mb-3">
+          Delivery to {{ job.invoice.recipient_email or job.invoice.client_email }} failed.
+          <a href="/customer/settings" class="font-medium underline hover:no-underline">Update your email</a>.
+        </p>
+        {% endif %}
+        <a href="/customer/invoices/{{ job.invoice.id }}/pdf"
+          class="inline-flex items-center text-sm bg-amber-600 hover:bg-amber-700 text-white font-medium px-4 py-2 rounded-lg transition">
+          Download PDF
+        </a>
+        {% if job.invoice.payment_status == 'paid' %}
+        <span class="inline-flex items-center text-sm ml-2 px-3 py-2 rounded-lg bg-emerald-100 text-emerald-800 font-medium">
+          Paid
+        </span>
+        {% else %}
+        <span class="inline-flex items-center text-sm ml-2 px-3 py-2 rounded-lg bg-amber-50 text-amber-800 font-medium">
+          Unpaid
+        </span>
+        <a href="/customer/invoices/{{ job.invoice.id }}/pay"
+          class="inline-flex items-center text-sm ml-2 bg-[#635bff] hover:bg-[#5851ea] text-white font-medium px-4 py-2 rounded-lg transition">
+          Pay now
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-slate-500 text-sm">Finished shoots will appear here once invoiced.</p>
+  {% endif %}
+</section>
+
+<section id="invoices" class="mt-4">
+  <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-violet-500"></span>
+    All your invoices ({{ invoices|length }})
+  </h2>
+  {% if invoices %}
+  <div class="grid gap-4 sm:hidden">
+    {% for invoice in invoices %}
+    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <p class="font-semibold text-slate-800">Invoice #{{ invoice.id }} · {{ invoice.job.title }}</p>
+      <p class="text-slate-500 text-sm mt-1">Shoot date: {{ invoice.job.shoot_date }}</p>
+      <dl class="grid grid-cols-2 gap-3 text-sm mt-3">
+        <div>
+          <dt class="text-slate-500">Subtotal</dt>
+          <dd class="font-medium">{{ fmt_cents(invoice.subtotal_cents) }}</dd>
+        </div>
+        <div>
+          <dt class="text-slate-500">Tax</dt>
+          <dd class="font-medium">{{ fmt_cents(invoice.tax_cents) }}</dd>
+        </div>
+        <div>
+          <dt class="text-slate-500">Total</dt>
+          <dd class="font-medium">{{ fmt_cents(invoice.total_cents) }}</dd>
+        </div>
+        <div>
+          <dt class="text-slate-500">Sent</dt>
+          <dd class="text-slate-700">{{ invoice.sent_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+        </div>
+        {% if invoice.payment_due_date and invoice.payment_status != 'paid' %}
+        <div>
+          <dt class="text-slate-500">Due</dt>
+          <dd class="text-slate-700">
+            Due by {{ invoice.payment_due_date }}
+            {% if invoice_is_overdue(invoice) %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-medium ml-1">Overdue</span>
+            {% endif %}
+          </dd>
+        </div>
+        {% endif %}
+      </dl>
+      <a href="/customer/invoices/{{ invoice.id }}/pdf"
+        class="mt-3 inline-flex text-sm text-amber-600 font-medium hover:underline">Download PDF</a>
+      {% if invoice.payment_status == 'paid' %}
+      <span class="mt-3 ml-3 inline-flex text-sm text-emerald-700 font-medium">Paid</span>
+      {% else %}
+      <span class="mt-3 ml-3 inline-flex text-sm text-amber-700 font-medium">Unpaid</span>
+      <a href="/customer/invoices/{{ invoice.id }}/pay"
+        class="mt-3 ml-3 inline-flex text-sm bg-[#635bff] hover:bg-[#5851ea] text-white font-medium px-3 py-1.5 rounded-lg">
+        Pay now
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="hidden sm:block bg-white rounded-xl border border-slate-200 shadow-sm">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-600 text-left">
+        <tr>
+          <th class="px-4 py-3 font-medium">Invoice</th>
+          <th class="px-4 py-3 font-medium">Shoot</th>
+          <th class="px-4 py-3 font-medium">Shoot date</th>
+          <th class="px-4 py-3 font-medium">Subtotal</th>
+          <th class="px-4 py-3 font-medium">Tax</th>
+          <th class="px-4 py-3 font-medium">Total</th>
+          <th class="px-4 py-3 font-medium">Sent</th>
+          <th class="px-4 py-3 font-medium">Due</th>
+          <th class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium">PDF</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for invoice in invoices %}
+        <tr>
+          <td class="px-4 py-3 font-medium text-slate-700">#{{ invoice.id }}</td>
+          <td class="px-4 py-3 font-medium">{{ invoice.job.title }}</td>
+          <td class="px-4 py-3 text-slate-600">{{ invoice.job.shoot_date }}</td>
+          <td class="px-4 py-3">{{ fmt_cents(invoice.subtotal_cents) }}</td>
+          <td class="px-4 py-3">{{ fmt_cents(invoice.tax_cents) }}</td>
+          <td class="px-4 py-3 font-medium">{{ fmt_cents(invoice.total_cents) }}</td>
+          <td class="px-4 py-3 text-slate-500">{{ invoice.sent_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td class="px-4 py-3 text-slate-600">
+            {% if invoice.payment_due_date and invoice.payment_status != 'paid' %}
+            Due by {{ invoice.payment_due_date }}
+            {% if invoice_is_overdue(invoice) %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-medium ml-1">Overdue</span>
+            {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if invoice.payment_status == 'paid' %}
+            <span class="text-emerald-700 font-medium">Paid</span>
+            {% else %}
+            <span class="text-amber-700 font-medium">Unpaid</span>
+            <span class="text-slate-300 mx-1">·</span>
+            <a href="/customer/invoices/{{ invoice.id }}/pay"
+              class="text-[#635bff] font-medium hover:underline">Pay now</a>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            <a href="/customer/invoices/{{ invoice.id }}/pdf"
+              class="text-amber-600 font-medium hover:underline">Download</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-slate-500 text-sm">Invoices appear here after your shoots are completed and sent.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Book a shoot — Matt Invoice Assistant{% endblock %}
+{% block header_extra %}
+{% include "partials/nav_logged_in.html" %}
+{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-8">
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+    <h1 class="text-2xl font-bold mb-2">Book a new shoot</h1>
+    <p class="text-slate-500 mb-6 text-sm">Set invoice terms now — they’re locked in when the job is marked done.</p>
+    {% if error %}
+    <div class="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="/jobs/book" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1" for="client_name">Client name</label>
+        <input id="client_name" name="client_name" type="text" required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1" for="client_email">Client email</label>
+        <input id="client_email" name="client_email" type="email" required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1" for="title">Shoot title</label>
+        <input id="title" name="title" type="text" required placeholder="e.g. Wedding reception"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1" for="shoot_date">Shoot date</label>
+        <input id="shoot_date" name="shoot_date" type="date" required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1" for="payment_due_date">Payment due date (optional)</label>
+        <input id="payment_due_date" name="payment_due_date" type="date"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        <p class="text-xs text-slate-500 mt-1">Leave blank to use the default ({{ default_payment_due_days }} days after invoice is sent).</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1" for="amount_dollars">Amount (USD)</label>
+          <input id="amount_dollars" name="amount_dollars" type="number" step="0.01" min="0.01" required
+            placeholder="2500.00"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1" for="tax_rate_percent">Tax (%)</label>
+          <input id="tax_rate_percent" name="tax_rate_percent" type="number" step="0.1" min="0" max="100"
+            value="8"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1" for="email_subject">Invoice email subject (optional)</label>
+        <input id="email_subject" name="email_subject" type="text"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1" for="email_body">Invoice email body (optional)</label>
+        <textarea id="email_body" name="email_body" rows="3"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit"
+          class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 rounded-lg transition">
+          Book shoot
+        </button>
+        <a href="/dashboard"
+          class="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 transition text-center">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

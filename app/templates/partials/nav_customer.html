@@ -1,0 +1,28 @@
+<div class="flex items-center gap-4 text-sm">
+  <nav class="flex items-center gap-3">
+    <a href="/customer/dashboard"
+      class="font-medium {% if request.url.path == '/customer/dashboard' %}text-amber-600{% else %}text-slate-600 hover:text-slate-900{% endif %}">
+      My shoots
+    </a>
+    <a href="/customer/book"
+      class="text-amber-600 font-medium hover:underline {% if request.url.path == '/customer/book' %}underline{% endif %}">
+      + Book shoot
+    </a>
+    <a href="/customer/dashboard#invoices"
+      class="font-medium text-slate-600 hover:text-slate-900">
+      Invoices
+    </a>
+    <a href="/customer/payment-methods"
+      class="font-medium {% if request.url.path == '/customer/payment-methods' %}text-amber-600{% else %}text-slate-600 hover:text-slate-900{% endif %}">
+      Payment methods
+    </a>
+    <a href="/customer/settings"
+      class="font-medium {% if request.url.path == '/customer/settings' %}text-amber-600{% else %}text-slate-600 hover:text-slate-900{% endif %}">
+      Settings
+    </a>
+  </nav>
+  <span class="text-slate-500">{{ user_email }}</span>
+  <form method="post" action="/customer/logout">
+    <button type="submit" class="text-slate-600 hover:text-slate-900 font-medium">Log out</button>
+  </form>
+</div>

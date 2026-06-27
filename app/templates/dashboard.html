@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Matt Invoice Assistant{% endblock %}
+{% block header_extra %}
+{% include "partials/nav_logged_in.html" %}
+{% endblock %}
+{% block content %}
+<div class="mb-8">
+  <p class="text-sm font-medium text-amber-600 mb-1">Welcome back</p>
+  <h1 class="text-3xl font-bold text-slate-800">Your shoots</h1>
+  <p class="text-slate-500 mt-1">Signed in as <span class="font-medium text-slate-700">{{ user_email }}</span>. Book → start → finish to send invoices.</p>
+</div>
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+    Booked ({{ pending_jobs|length }})
+  </h2>
+  {% if pending_jobs %}
+  <div class="grid gap-4">
+    {% for job in pending_jobs %}
+    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h3 class="font-semibold text-lg">{{ job.title }}</h3>
+          <p class="text-slate-500 text-sm">{{ job.client_name }} · {{ job.shoot_date }}</p>
+          <p class="text-slate-600 text-sm mt-1">Invoice preset: {{ fmt_cents(job.amount_cents) }} + tax</p>
+        </div>
+        <form method="post" action="/jobs/{{ job.id }}/start">
+          <button type="submit"
+            class="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            Start shoot
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+    No booked shoots. <a href="/jobs/book" class="text-amber-600 font-medium hover:underline">Book one</a>.
+  </div>
+  {% endif %}
+</section>
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+    In progress ({{ started_jobs|length }})
+  </h2>
+  {% if started_jobs %}
+  <div class="grid gap-4">
+    {% for job in started_jobs %}
+    <div class="bg-white rounded-xl border border-amber-200 p-5 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h3 class="font-semibold text-lg">{{ job.title }}</h3>
+          <p class="text-slate-500 text-sm">{{ job.client_name }} · {{ job.shoot_date }}</p>
+          <p class="text-slate-600 text-sm mt-1">Invoice preset: {{ fmt_cents(job.amount_cents) }} + tax</p>
+        </div>
+        <form method="post" action="/jobs/{{ job.id }}/complete">
+          <button type="submit"
+            class="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            Mark done &amp; send invoice
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-slate-500 text-sm">Start a booked shoot to see it here.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+    Completed &amp; invoiced ({{ completed_jobs|length }})
+  </h2>
+  {% if completed_jobs %}
+  <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-600 text-left">
+        <tr>
+          <th class="px-4 py-3 font-medium">Shoot</th>
+          <th class="px-4 py-3 font-medium">Client</th>
+          <th class="px-4 py-3 font-medium">Subtotal</th>
+          <th class="px-4 py-3 font-medium">Tax</th>
+          <th class="px-4 py-3 font-medium">Total</th>
+          <th class="px-4 py-3 font-medium">Sent</th>
+          <th class="px-4 py-3 font-medium">Due</th>
+          <th class="px-4 py-3 font-medium">Email</th>
+          <th class="px-4 py-3 font-medium">Payment</th>
+          <th class="px-4 py-3 font-medium">PDF</th>
+          <th class="px-4 py-3 font-medium"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for job in completed_jobs %}
+        <tr>
+          <td class="px-4 py-3 font-medium">{{ job.title }}</td>
+          <td class="px-4 py-3 text-slate-600">{{ job.client_name }}</td>
+          <td class="px-4 py-3">
+            {% if job.invoice %}{{ fmt_cents(job.invoice.subtotal_cents) }}{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if job.invoice %}{{ fmt_cents(job.invoice.tax_cents) }}{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3 font-medium">
+            {% if job.invoice %}{{ fmt_cents(job.invoice.total_cents) }}{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3 text-slate-500">
+            {% if job.invoice %}{{ job.invoice.sent_at.strftime('%Y-%m-%d %H:%M') }}{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3 text-slate-600">
+            {% if job.invoice and job.invoice.payment_due_date and job.invoice.payment_status != 'paid' %}
+            Due by {{ job.invoice.payment_due_date }}
+            {% if invoice_is_overdue(job.invoice) %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-medium ml-1">Overdue</span>
+            {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if job.invoice %}
+              {% if job.invoice.email_status in ('sent', 'delivered') %}
+              <span class="text-emerald-700 font-medium capitalize">{{ job.invoice.email_status }}</span>
+              {% elif job.invoice.email_status == 'failed' %}
+              <span class="text-red-700 font-medium" title="{{ job.invoice.email_error or '' }}">Failed</span>
+              {% else %}
+              <span class="text-slate-500 capitalize">{{ job.invoice.email_status }}</span>
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if job.invoice %}
+              {% if job.invoice.payment_status == 'paid' %}
+              <span class="text-emerald-700 font-medium">Paid</span>
+              {% else %}
+              <span class="text-amber-700 font-medium">Unpaid</span>
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if job.invoice %}
+            <a href="/invoices/{{ job.invoice.id }}/pdf"
+              class="text-amber-600 font-medium hover:underline">Download</a>
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if job.invoice %}
+            <form method="post" action="/jobs/{{ job.id }}/resend-invoice" class="inline">
+              <button type="submit"
+                class="text-slate-600 hover:text-slate-900 text-sm font-medium hover:underline">
+                Resend invoice
+              </button>
+            </form>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-slate-500 text-sm">Completed shoots with sent invoices will appear here.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,20 @@
+<div class="flex items-center gap-4 text-sm">
+  <nav class="flex items-center gap-3">
+    <a href="/dashboard"
+      class="font-medium {% if request.url.path == '/dashboard' %}text-amber-600{% else %}text-slate-600 hover:text-slate-900{% endif %}">
+      Shoots
+    </a>
+    <a href="/analytics"
+      class="font-medium {% if request.url.path == '/analytics' %}text-amber-600{% else %}text-slate-600 hover:text-slate-900{% endif %}">
+      Analytics
+    </a>
+  </nav>
+  <a href="/jobs/book"
+    class="text-amber-600 font-medium hover:underline {% if request.url.path == '/jobs/book' %}underline{% endif %}">
+    + Book shoot
+  </a>
+  <span class="text-slate-500">{{ user_email }}</span>
+  <form method="post" action="/logout">
+    <button type="submit" class="text-slate-600 hover:text-slate-900 font-medium">Log out</button>
+  </form>
+</div>

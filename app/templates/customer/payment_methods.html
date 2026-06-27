@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Payment methods — Matt Photography{% endblock %}
+{% block header_extra %}
+{% include "partials/nav_customer.html" %}
+{% endblock %}
+{% block content %}
+<div class="mb-8">
+  <p class="text-sm font-medium text-amber-600 mb-1">Client portal</p>
+  <h1 class="text-3xl font-bold text-slate-800">Payment methods</h1>
+  <p class="text-slate-500 mt-1">Save a card to pay invoices quickly. We never store your full card number. CVV is never stored — enter it each time you pay.</p>
+</div>
+
+{% if error %}
+<div class="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">{{ error }}</div>
+{% endif %}
+{% if success %}
+<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-800 text-sm border border-emerald-100">{{ success }}</div>
+{% endif %}
+
+<section class="mb-10">
+  <h2 class="text-lg font-semibold mb-4">Saved cards</h2>
+  {% if payment_methods %}
+  <div class="grid gap-3">
+    {% for pm in payment_methods %}
+    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex items-center justify-between">
+      <div>
+        <p class="font-semibold text-slate-800 capitalize">{{ pm.brand }} ···· {{ pm.last4 }}</p>
+        <p class="text-sm text-slate-500">Expires {{ '%02d'|format(pm.exp_month) }}/{{ pm.exp_year }}</p>
+      </div>
+      {% if pm.is_default %}
+      <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-800">Default</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-slate-500 text-sm mb-4">No cards saved yet. Add one below to pay invoices from the app.</p>
+  {% endif %}
+</section>
+
+<section class="max-w-lg">
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+    <h2 class="text-xl font-bold mb-2">Add a card</h2>
+    <p class="text-slate-500 mb-6 text-sm">Use any Visa or Mastercard test number · any future expiry</p>
+    <form method="post" action="/customer/payment-methods" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1" for="card_number">Card number</label>
+        <input id="card_number" name="card_number" type="text" inputmode="numeric" autocomplete="cc-number" required
+          placeholder="1234 5678 9012 3456"
+          pattern="[\d\s]{13,23}"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1" for="exp_month">Month</label>
+          <input id="exp_month" name="exp_month" type="number" min="1" max="12" required placeholder="MM"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1" for="exp_year">Year</label>
+          <input id="exp_year" name="exp_year" type="number" min="2026" max="2099" required placeholder="YYYY"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+      </div>
+      <label class="flex items-center gap-2 text-sm text-slate-600">
+        <input type="checkbox" name="make_default" class="rounded border-slate-300 text-amber-600 focus:ring-amber-500">
+        Set as default payment method
+      </label>
+      <div class="flex gap-3 pt-2">
+        <button type="submit"
+          class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 rounded-lg transition">
+          Save card
+        </button>
+        <a href="/customer/dashboard"
+          class="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 transition text-center">
+          Back
+        </a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

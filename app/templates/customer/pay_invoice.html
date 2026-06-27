@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Pay invoice #{{ invoice.id }} — Matt Photography{% endblock %}
+{% block header_extra %}
+{% include "partials/nav_customer.html" %}
+{% endblock %}
+{% block content %}
+<style>
+  .stripe-checkout {
+    background: #f6f9fc;
+    margin: -2rem -1rem;
+    padding: 2.5rem 1rem 3rem;
+    min-height: calc(100vh - 5rem);
+  }
+  .stripe-panel {
+    max-width: 28rem;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 0.375rem;
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+  }
+  .stripe-input {
+    border: 1px solid #e6ebf1;
+    border-radius: 0.375rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #32325d;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(50, 50, 93, 0.08);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .stripe-input:focus {
+    outline: none;
+    border-color: #635bff;
+    box-shadow: 0 1px 3px rgba(50, 50, 93, 0.08), 0 0 0 1px #635bff;
+  }
+  .stripe-btn {
+    background: #635bff;
+    color: #fff;
+    font-weight: 600;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: background 0.15s ease;
+  }
+  .stripe-btn:hover { background: #5851ea; }
+  .stripe-label { color: #6b7c93; font-size: 0.8125rem; font-weight: 500; }
+  .stripe-wordmark { color: #635bff; font-weight: 700; letter-spacing: -0.02em; font-size: 1.125rem; }
+</style>
+
+<div class="stripe-checkout">
+  <div class="stripe-panel">
+    <div class="px-6 pt-6 pb-4 border-b border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <span class="stripe-wordmark">stripe</span>
+        <span class="text-xs text-slate-400 uppercase tracking-wide">Test mode</span>
+      </div>
+      <p class="text-sm text-slate-500">Matt Photography</p>
+      <p class="text-xl font-semibold text-slate-800 mt-1">{{ invoice.job.title }}</p>
+      <p class="text-3xl font-bold text-slate-900 mt-3">{{ fmt_cents(invoice.total_cents) }}</p>
+      <p class="text-xs text-slate-400 mt-1">Invoice #{{ invoice.id }}</p>
+      {% if invoice.payment_due_date and invoice.payment_status != 'paid' %}
+      <p class="text-sm mt-2 {% if invoice_is_overdue(invoice) %}text-red-700{% else %}text-slate-600{% endif %}">
+        Due by {{ invoice.payment_due_date }}
+        {% if invoice_is_overdue(invoice) %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-medium ml-1">Overdue</span>
+        {% endif %}
+      </p>
+      {% endif %}
+    </div>
+
+    <div class="px-6 py-6">
+      {% if error and invoice.payment_status == 'paid' %}
+      <div class="mb-4 p-3 rounded-md bg-red-50 text-red-700 text-sm border border-red-100">{{ error }}</div>
+      <a href="/customer/dashboard" class="text-sm text-[#635bff] font-medium hover:underline">Back to dashboard</a>
+      {% elif invoice.payment_status == 'paid' %}
+      <div class="p-4 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-100 text-sm">
+        Payment complete — this invoice was paid on {{ invoice.paid_at.strftime('%Y-%m-%d %H:%M') }}.
+      </div>
+      <a href="/customer/dashboard" class="inline-block mt-4 text-sm text-[#635bff] font-medium hover:underline">Back to dashboard</a>
+      {% else %}
+      {% if error %}
+      <div class="mb-4 p-3 rounded-md bg-red-50 text-red-700 text-sm border border-red-100">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="/customer/invoices/{{ invoice.id }}/pay" class="space-y-5">
+        {% if payment_methods %}
+        <fieldset>
+          <legend class="stripe-label mb-2 block">Saved payment methods</legend>
+          <div class="space-y-2">
+            {% for pm in payment_methods %}
+            <label class="flex items-center gap-3 p-3 rounded-md border border-[#e6ebf1] cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="payment_method_id" value="{{ pm.id }}"
+                {% if pm.is_default %}checked{% endif %}
+                class="text-[#635bff] focus:ring-[#635bff]">
+              <span class="text-sm capitalize text-slate-700">{{ pm.brand }} ···· {{ pm.last4 }} ({{ '%02d'|format(pm.exp_month) }}/{{ pm.exp_year }})</span>
+              {% if pm.is_default %}
+              <span class="text-xs text-[#635bff] font-medium ml-auto">Default</span>
+              {% endif %}
+            </label>
+            {% endfor %}
+            <label class="flex items-center gap-3 p-3 rounded-md border border-[#e6ebf1] cursor-pointer hover:bg-slate-50">
+              <input type="radio" name="payment_method_id" value="" class="text-[#635bff] focus:ring-[#635bff]">
+              <span class="text-sm text-slate-600">Use a new card</span>
+            </label>
+          </div>
+        </fieldset>
+        {% endif %}
+
+        <div id="new-card-fields" class="space-y-4 {% if payment_methods %}hidden{% endif %}">
+          <div>
+            <label class="stripe-label block mb-1.5" for="card_number">Card information</label>
+            <input id="card_number" name="card_number" type="text" inputmode="numeric" autocomplete="cc-number"
+              placeholder="1234 1234 1234 1234"
+              class="stripe-input w-full">
+          </div>
+          <div>
+            <label class="stripe-label block mb-1.5" for="exp_month">Expiry</label>
+            <div class="flex gap-2">
+              <input id="exp_month" name="exp_month" type="number" min="1" max="12" placeholder="MM"
+                class="stripe-input w-full">
+              <input id="exp_year" name="exp_year" type="number" min="2026" max="2099" placeholder="YYYY"
+                class="stripe-input w-full">
+            </div>
+          </div>
+          <label class="flex items-center gap-2 text-sm text-slate-600">
+            <input type="checkbox" name="save_card" class="rounded border-slate-300 text-[#635bff] focus:ring-[#635bff]">
+            Save card for future payments
+          </label>
+        </div>
+
+        <div>
+          <label class="stripe-label block mb-1.5" for="cvc">CVC</label>
+          <input id="cvc" name="cvc" type="text" inputmode="numeric" autocomplete="cc-csc" maxlength="4" placeholder="CVC" required
+            class="stripe-input w-full">
+          <p class="text-xs text-slate-400 mt-1.5">CVV is never stored — enter it each time you pay.</p>
+        </div>
+
+        <button type="submit" class="stripe-btn w-full py-3 text-base">
+          Pay {{ fmt_cents(invoice.total_cents) }}
+        </button>
+        <a href="/customer/dashboard"
+          class="block text-center text-sm text-slate-500 hover:text-slate-700 transition">
+          Cancel and return
+        </a>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <p class="text-center text-xs text-slate-400 mt-6 flex items-center justify-center gap-1">
+    <span>Powered by</span>
+    <span class="stripe-wordmark text-sm">stripe</span>
+  </p>
+</div>
+
+{% if payment_methods and invoice.payment_status != 'paid' %}
+<script>
+  (function () {
+    const newCard = document.getElementById('new-card-fields');
+    const radios = document.querySelectorAll('input[name="payment_method_id"]');
+    function sync() {
+      const selected = document.querySelector('input[name="payment_method_id"]:checked');
+      const useNew = !selected || selected.value === '';
+      newCard.classList.toggle('hidden', !useNew);
+      newCard.querySelectorAll('input').forEach(function (el) {
+        el.required = useNew;
+      });
+      const cvc = document.getElementById('cvc');
+      if (cvc) {
+        cvc.required = true;
+      }
+    }
+    radios.forEach(function (r) { r.addEventListener('change', sync); });
+    sync();
+  })();
+</script>
+{% endif %}
+{% endblock %}

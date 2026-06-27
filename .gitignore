@@ -1,0 +1,42 @@
+node_modules/
+.venv/
+__pycache__/
+*.log
+.worktrees/
+data/*
+!data/README.md
+.env
+
+# ── Project scaffold / hackathon harness (template) ──────────────────────────
+# Cursor orchestration: agent rules, setup skills, generator prompts, session
+# rituals, and MVP scaffolding. Not part of the application runtime.
+# Kept tracked: app/, tests/, README.md, pyproject.toml, .env.example,
+# docs/RUNBOOK.md, docs/ARCHITECTURE.md, screenshots/, and runtime scripts
+# (scripts/run.sh, verify.sh, check-db.sh, send_payment_reminders.py).
+
+# Cursor agent orchestration (agents.mdc, frontend-design.mdc from setup-ui)
+.cursor/rules/
+
+# Reusable setup skills and Composer prompt library
+skills/
+
+# Generator / planner / evaluator loop prompts
+prompts/
+
+# Session handoff stack (fix_plan, progress log, template conversion notes)
+planning/
+
+# MVP feature checklist ("are we done") — harness source of truth
+specs/
+
+# Harness docs (not project RUNBOOK / ARCHITECTURE)
+docs/golden-principles.md
+docs/product-specs/
+docs/exec-plans/
+docs/DATA.md
+
+# Harness scripts (not app run / verify / db / payment / screenshot tooling)
+init.sh
+scripts/session-start.sh
+scripts/capture_screenshots.py
+scripts/loop.sh

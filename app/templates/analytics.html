@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Analytics — Matt Invoice Assistant{% endblock %}
+{% block header_extra %}
+{% include "partials/nav_logged_in.html" %}
+{% endblock %}
+{% block content %}
+<div class="mb-8">
+  <p class="text-sm font-medium text-amber-600 mb-1">Overview</p>
+  <h1 class="text-3xl font-bold text-slate-800">Revenue analytics</h1>
+  <p class="text-slate-500 mt-1">Pending = booked, in-progress, and unpaid invoices. Paid = client completed payment.</p>
+</div>
+
+<div class="grid sm:grid-cols-2 gap-6 mb-8">
+  <div class="bg-white rounded-xl border border-amber-200 p-6 shadow-sm">
+    <p class="text-sm font-medium text-amber-600 mb-1">Pending</p>
+    <p class="text-3xl font-bold text-slate-800">{{ fmt_cents(analytics.pending_cents) }}</p>
+    <p class="text-slate-500 text-sm mt-2">{{ analytics.pending_count }} shoot{{ analytics.pending_count != 1 and 's' or '' }} awaiting payment</p>
+    <p class="text-slate-400 text-xs mt-1">{{ analytics.booked_count }} booked · {{ analytics.in_progress_count }} in progress</p>
+  </div>
+  <div class="bg-white rounded-xl border border-emerald-200 p-6 shadow-sm">
+    <p class="text-sm font-medium text-emerald-600 mb-1">Paid</p>
+    <p class="text-3xl font-bold text-slate-800">{{ fmt_cents(analytics.paid_cents) }}</p>
+    <p class="text-slate-500 text-sm mt-2">{{ analytics.paid_count }} invoice{{ analytics.paid_count != 1 and 's' or '' }} paid</p>
+  </div>
+</div>
+
+{% if analytics.total_pipeline_cents > 0 %}
+<section class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm mb-8">
+  <h2 class="text-sm font-semibold text-slate-600 mb-4">Pipeline split</h2>
+  <div class="flex h-10 rounded-lg overflow-hidden bg-slate-100">
+    {% if analytics.pending_cents > 0 %}
+    <div class="bg-amber-500 flex items-center justify-center text-xs font-medium text-white px-2"
+      style="width: {{ pending_pct }}%; min-width: 2rem;">
+      Pending
+    </div>
+    {% endif %}
+    {% if analytics.paid_cents > 0 %}
+    <div class="bg-emerald-500 flex items-center justify-center text-xs font-medium text-white px-2"
+      style="width: {{ paid_pct }}%; min-width: 2rem;">
+      Paid
+    </div>
+    {% endif %}
+  </div>
+  <div class="flex justify-between text-xs text-slate-500 mt-2">
+    <span>Pending {{ pending_pct }}%</span>
+    <span>Paid {{ paid_pct }}%</span>
+  </div>
+</section>
+{% else %}
+<section class="bg-white rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500 mb-8">
+  No revenue data yet. <a href="/jobs/book" class="text-amber-600 font-medium hover:underline">Book a shoot</a> to get started.
+</section>
+{% endif %}
+
+<section class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+  <h2 class="text-sm font-semibold text-slate-600 mb-2">Total pipeline</h2>
+  <p class="text-2xl font-bold text-slate-800">{{ fmt_cents(analytics.total_pipeline_cents) }}</p>
+  <p class="text-slate-500 text-sm mt-1">Pending + invoiced combined</p>
+</section>
+{% endblock %}
