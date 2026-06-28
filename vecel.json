@@ -1,0 +1,11 @@
+{
+  "builds": [
+    {
+      "src": "app/main.py",
+      "use": "@vercel/python",
+      "config": {
+        "buildCommand": "pip install -r requirements.txt && pip install psycopg2-binary"
+      }
+    }
+  ]
+}
