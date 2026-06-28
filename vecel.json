@@ -4,8 +4,13 @@
       "src": "app/main.py",
       "use": "@vercel/python",
       "config": {
-        "buildCommand": "pip install -r requirements.txt && pip install psycopg2-binary"
+        "installCommand": "pip install -e . && pip install psycopg2-binary"
       }
     }
-  ]
+  ],
+  "functions": {
+    "app/main.py": {
+      "runtime": "python3.12"
+    }
+  }
 }
