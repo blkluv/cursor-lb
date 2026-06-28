@@ -1,11 +1,17 @@
 """SQLAlchemy ORM models."""
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+# Import Base only - no engine creation here
 from app.db import Base
+
+# Use TYPE_CHECKING to avoid circular imports at runtime
+if TYPE_CHECKING:
+    from app.db import get_engine  # For type checking only
 
 
 class User(Base):
@@ -18,8 +24,11 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(32), default="photographer", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
-    jobs: Mapped[list["Job"]] = relationship(back_populates="user")
-    payment_methods: Mapped[list["PaymentMethod"]] = relationship(back_populates="user")
+    jobs: Mapped[list["Job"]] = relationship(back_populates="user", lazy="selectin")
+    payment_methods: Mapped[list["PaymentMethod"]] = relationship(back_populates="user", lazy="selectin")
+
+    def __repr__(self) -> str:
+        return f"<User(id={self.id}, email={self.email}, role={self.role})>"
 
 
 class Job(Base):
@@ -42,8 +51,11 @@ class Job(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    user: Mapped["User"] = relationship(back_populates="jobs")
-    invoice: Mapped["Invoice | None"] = relationship(back_populates="job", uselist=False)
+    user: Mapped["User"] = relationship(back_populates="jobs", lazy="selectin")
+    invoice: Mapped["Invoice | None"] = relationship(back_populates="job", uselist=False, lazy="selectin")
+
+    def __repr__(self) -> str:
+        return f"<Job(id={self.id}, external_id={self.external_id}, client_name={self.client_name})>"
 
 
 class Invoice(Base):
@@ -67,8 +79,11 @@ class Invoice(Base):
         DateTime, nullable=True,
     )
 
-    job: Mapped["Job"] = relationship(back_populates="invoice")
-    payments: Mapped[list["Payment"]] = relationship(back_populates="invoice")
+    job: Mapped["Job"] = relationship(back_populates="invoice", lazy="selectin")
+    payments: Mapped[list["Payment"]] = relationship(back_populates="invoice", lazy="selectin")
+
+    def __repr__(self) -> str:
+        return f"<Invoice(id={self.id}, job_id={self.job_id}, total_cents={self.total_cents})>"
 
 
 class PaymentMethod(Base):
@@ -90,8 +105,11 @@ class PaymentMethod(Base):
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
-    user: Mapped["User"] = relationship(back_populates="payment_methods")
-    payments: Mapped[list["Payment"]] = relationship(back_populates="payment_method")
+    user: Mapped["User"] = relationship(back_populates="payment_methods", lazy="selectin")
+    payments: Mapped[list["Payment"]] = relationship(back_populates="payment_method", lazy="selectin")
+
+    def __repr__(self) -> str:
+        return f"<PaymentMethod(id={self.id}, brand={self.brand}, last4={self.last4})>"
 
 
 class Payment(Base):
@@ -107,5 +125,24 @@ class Payment(Base):
     paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
-    invoice: Mapped["Invoice"] = relationship(back_populates="payments")
-    payment_method: Mapped["PaymentMethod | None"] = relationship(back_populates="payments")
+    invoice: Mapped["Invoice"] = relationship(back_populates="payments", lazy="selectin")
+    payment_method: Mapped["PaymentMethod | None"] = relationship(back_populates="payments", lazy="selectin")
+
+    def __repr__(self) -> str:
+        return f"<Payment(id={self.id}, invoice_id={self.invoice_id}, amount_cents={self.amount_cents}, status={self.status})>"
+
+
+# Optional: Function to create all tables (lazy)
+def create_tables():
+    """Create all tables if they don't exist."""
+    from app.db import get_engine
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
+
+
+# Optional: Function to drop all tables (use with caution!)
+def drop_tables():
+    """Drop all tables."""
+    from app.db import get_engine
+    engine = get_engine()
+    Base.metadata.drop_all(bind=engine)
